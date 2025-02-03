@@ -15,7 +15,10 @@ import (
   "github.com/PuerkitoBio/goquery"
   "github.com/urfave/cli/v2"
 )
-  
+ 
+func ExtractCloudflareHtml(body []byte){
+  // detect if the response is actually cloudflare page
+}
 
 func CheckTor(tor *http.Transport){
   client := &http.Client{
