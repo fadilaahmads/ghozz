@@ -157,12 +157,12 @@ func main()  {
       if err != nil {
         return err
       }
-      Fuzz(target, wordlist)
+      Fuzz(target, wordlist, tor)
       return nil
-    }
-  },
+    },
+  }
 
-  err := app.Run(os.Args)
+  err = app.Run(os.Args)
   if err != nil {
     fmt.Errorf("Error running app: %v", err)
   }
