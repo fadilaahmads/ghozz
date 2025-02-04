@@ -18,7 +18,18 @@ import (
  
 func ExtractCloudflareHtml(body []byte){
   // detect if the response is actually cloudflare page
-}
+  doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+  if err != nil {
+    fmt.Errorf("Error parsing HTML: %v", err)
+    return
+  }
+
+  title := doc.Find("title").Text() 
+  if(title == "Attention Required! | Cloudflare"){
+    fmt.Println("[!] Cloudflare Detected!")
+    fmt.Println("[X] Unable to proceed!")
+  }
+ }
 
 func CheckTor(tor *http.Transport){
   client := &http.Client{
@@ -102,6 +113,8 @@ func ReadWordlist(filePath string) ([]string, error) {
 }
 
 func Fuzz(target string, wordlist []string, tor *http.Transport) {
+  CheckTor(tor)
+
   const constUrl = "%s/%s"
   var client *http.Client = &http.Client{
     Transport: tor,
@@ -128,12 +141,15 @@ func Fuzz(target string, wordlist []string, tor *http.Transport) {
     fmt.Println("[*]URL: ", url)
     fmt.Println("[*]Status Code: ", resp.StatusCode)
     // fmt.Println("[|]Payload: ", string(data))
-    // body, err := io.ReadAll(resp.Body)
-    // if err != nil {
-    //   fmt.Println("[X]Error reading response: ", err)
-    //   return
-    // }
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+      fmt.Println("[X]Error reading response: ", err)
+      return
+    }
     // fmt.Println("[*]Response: ", string(body))
+    ExtractCloudflareHtml(body)
+    // print blank line
+    fmt.Println("")
   }
 }
 
@@ -143,9 +159,7 @@ func main()  {
   if err != nil {
     fmt.Errorf("Error setting up TOR proxy: %v", err)
   }
-  
-  CheckTor(tor)
-
+   
   app := &cli.App{
     Name: "GoFuzzer",
     Usage: "Directory Fuzzing With TOR Support",
