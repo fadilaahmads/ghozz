@@ -4,7 +4,7 @@ import (
   "fmt"
 	"io"
 	"net/http"
-  "gofuzzer/internal/tor"
+  "ghozz/internal/tor"
 )
 
 func Fuzz(target string, wordlist []string, torSetup *http.Transport) {

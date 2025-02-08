@@ -5,12 +5,11 @@ import (
   "os"
 
   "github.com/urfave/cli/v2"
-  "gofuzzer/internal/fuzzer"
-	"gofuzzer/internal/tor"
+  "ghozz/internal/fuzzer"
+	"ghozz/internal/tor"
 )
 
 func main()  {
-  fmt.Println("GoFuzzer")
   tor, err := tor.SetupTOR()
   if err != nil {
     fmt.Errorf("Error setting up TOR proxy: %v", err)
