@@ -1,4 +1,4 @@
-module gofuzzer
+module ghozz
 
 go 1.23.5
 
