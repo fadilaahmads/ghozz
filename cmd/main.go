@@ -21,15 +21,18 @@ func main()  {
     Flags: []cli.Flag{
       &cli.StringFlag{Name: "target", Required: true},
       &cli.StringFlag{Name: "wordlist", Required: true},
+      &cli.StringFlag{Name: "output", Required: false, Usage: "File to save output"},
     },
     Action: func(c *cli.Context) error {
       target:= c.String("target")
       wordlistFile := c.String("wordlist")
+      outputFile:= c.String("output")
+
       wordlist, err := fuzzer.ReadWordlist(wordlistFile)
       if err != nil {
         return err
       }
-      fuzzer.Fuzz(target, wordlist, tor)
+      fuzzer.Fuzz(target, wordlist, tor, outputFile)
       return nil
     },
   }
