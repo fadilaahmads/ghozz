@@ -5,10 +5,13 @@ import (
 	"io"
 	"net/http"
   "ghozz/internal/tor"
+  "ghozz/pkg/output"
 )
 
-func Fuzz(target string, wordlist []string, torSetup *http.Transport) {
+func Fuzz(target string, wordlist []string, torSetup *http.Transport, outputFile string) {
   tor.CheckTor(torSetup)
+  
+  var results []string
 
   const constUrl = "%s/%s"
   var client *http.Client = &http.Client{
@@ -33,17 +36,30 @@ func Fuzz(target string, wordlist []string, torSetup *http.Transport) {
 
     defer resp.Body.Close()
 
-    fmt.Println("[*]URL: ", url)
-    fmt.Println("[*]Status Code: ", resp.StatusCode)
-    // fmt.Println("[|]Payload: ", string(data))
     body, err := io.ReadAll(resp.Body)
     if err != nil {
       fmt.Println("[X]Error reading response: ", err)
       return
     }
-    // fmt.Println("[*]Response: ", string(body))
-    ExtractCloudflareHtml(body)
+    CFDetected, err := ExtractCloudflareHtml(body)
+    if err != nil {
+      fmt.Println("Error extracting cloudflare page: ", err)
+    }
+    if CFDetected == true {
+      continue
+    }
+    result := fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode)
+    fmt.Println(result)
+    results = append(results, result)
+
     // print blank line
-    fmt.Println("")
-  }
+    fmt.Println("") 
+  } 
+
+  if outputFile != "" {
+    err := output.SaveToFile(outputFile, results)
+      if err != nil {
+        fmt.Println("Error saving output: ", err)
+      }
+    }
 }
