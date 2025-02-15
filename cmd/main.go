@@ -32,7 +32,7 @@ func main()  {
       if err != nil {
         return err
       }
-      fuzzer.Fuzz(target, wordlist, tor, outputFile)
+      fuzzer.Fuzz(target, wordlist, nil,  tor, outputFile)
       return nil
     },
   }
