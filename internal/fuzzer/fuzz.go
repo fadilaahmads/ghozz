@@ -6,17 +6,30 @@ import (
 	"net/http"
   "ghozz/internal/tor"
   "ghozz/pkg/output"
+  "time"
 )
 
-func Fuzz(target string, wordlist []string, torSetup *http.Transport, outputFile string) {
-  tor.CheckTor(torSetup)
+func getClient(client *http.Client, torClient *http.Transport) *http.Client {
+  if client != nil {
+    return client // Use injected client for tests or custom clients.
+  }
+  return &http.Client{
+    Timeout: 15 * time.Second,
+    Transport: torClient,
+  }
+}
+
+func Fuzz(target string, wordlist []string, clientSetup *http.Client, torSetup *http.Transport, outputFile string) { 
+  client := getClient(clientSetup, torSetup)
   
-  var results []string
+  if torSetup != nil {
+    tor.CheckTor(torSetup)
+  }
+
+  results := make([]string, 0, len(wordlist))
 
   const constUrl = "%s/%s"
-  var client *http.Client = &http.Client{
-    Transport: torSetup,
-  }
+
   for _, word:= range wordlist {
     var url string = fmt.Sprintf(constUrl, target, word) 
     req, err := http.NewRequest("GET", url,nil)
@@ -34,8 +47,6 @@ func Fuzz(target string, wordlist []string, torSetup *http.Transport, outputFile
       return
     }
 
-    defer resp.Body.Close()
-
     body, err := io.ReadAll(resp.Body)
     if err != nil {
       fmt.Println("[X]Error reading response: ", err)
@@ -51,6 +62,8 @@ func Fuzz(target string, wordlist []string, torSetup *http.Transport, outputFile
     result := fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode)
     fmt.Println(result)
     results = append(results, result)
+    
+   resp.Body.Close()
 
     // print blank line
     fmt.Println("") 
