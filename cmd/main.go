@@ -16,7 +16,7 @@ func main()  {
   }
    
   app := &cli.App{
-    Name: "GoFuzzer",
+    Name: "GhoZZ",
     Usage: "Directory Fuzzing With TOR Support",
     Flags: []cli.Flag{
       &cli.StringFlag{Name: "target", Required: true},
