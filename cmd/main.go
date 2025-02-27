@@ -22,17 +22,19 @@ func main()  {
       &cli.StringFlag{Name: "target", Required: true},
       &cli.StringFlag{Name: "wordlist", Required: true},
       &cli.StringFlag{Name: "output", Required: false, Usage: "File to save output"},
+      &cli.StringFlag{Name: "hide code", Required: false, Usage: "Filter output http code"},
     },
     Action: func(c *cli.Context) error {
       target:= c.String("target")
       wordlistFile := c.String("wordlist")
       outputFile:= c.String("output")
+      hideCode:= c.String("hide-code")
 
       wordlist, err := fuzzer.ReadWordlist(wordlistFile)
       if err != nil {
         return err
       }
-      fuzzer.Fuzz(target, wordlist, nil,  tor, outputFile)
+      fuzzer.Fuzz(target, wordlist, hideCode, nil,  tor, outputFile)
       return nil
     },
   }

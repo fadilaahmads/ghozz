@@ -6,6 +6,7 @@ import (
 	"net/http"
   "ghozz/internal/tor"
   "ghozz/pkg/output"
+  "ghozz/pkg/filter"
   "time"
 )
 
@@ -19,14 +20,14 @@ func getClient(client *http.Client, torClient *http.Transport) *http.Client {
   }
 }
 
-func Fuzz(target string, wordlist []string, clientSetup *http.Client, torSetup *http.Transport, outputFile string) { 
+func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string) { 
   client := getClient(clientSetup, torSetup)
   
   if torSetup != nil {
     tor.CheckTor(torSetup)
   }
-
-  results := make([]string, 0, len(wordlist))
+   
+  results := make([]string, 0, len(wordlist)) 
 
   const constUrl = "%s/%s"
 
@@ -37,7 +38,7 @@ func Fuzz(target string, wordlist []string, clientSetup *http.Client, torSetup *
       fmt.Println("Error creating request: ", err )
      return
      }
-
+    
     //req.Header.Set("Content-Type", "application/json")
 
     // Use hte HTTP client  to send the request 
@@ -45,6 +46,14 @@ func Fuzz(target string, wordlist []string, clientSetup *http.Client, torSetup *
     if err != nil {
      fmt.Println("Error sending request: ", err)
       return
+    }
+    
+    hiddenCodes, err := filter.ParseHideCodes(httpCode)
+    if err != nil {
+      fmt.Errorf("Error parsing http code: %v", err)
+    }
+    if hiddenCodes[resp.StatusCode] {
+      continue
     }
 
     body, err := io.ReadAll(resp.Body)
