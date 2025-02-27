@@ -8,7 +8,7 @@ import (
 
 func TestSaveToFile(t *testing.T)  {
   var filename string = "temp.txt"
-  var data = []string{"output1", "output22", "output3"}
+  var data = []string{"output1", "output2", "output3"}
 
   err := SaveToFile(filename, data)
   if err != nil {
