@@ -10,7 +10,7 @@ import (
   "time"
 )
 
-func getClient(client *http.Client, torClient *http.Transport) *http.Client {
+func createHTTPClient(client *http.Client, torClient *http.Transport) *http.Client {
   if client != nil {
     return client // Use injected client for tests or custom clients.
   }
@@ -20,68 +20,65 @@ func getClient(client *http.Client, torClient *http.Transport) *http.Client {
   }
 }
 
+func processResponse(resp *http.Response, url string) (string, error) { 
+  body, err := io.ReadAll(resp.Body)
+  if err != nil {
+    return "", fmt.Errorf("error reading response: %w", err)
+  }
+
+  cfDetected, _ := ExtractCloudflareHtml(body)
+  if cfDetected {
+    return "[!] Cloudflare detected, skipping", nil
+  }
+  resp.Body.Close() 
+
+  return fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode), nil
+}
+
 func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string) { 
-  client := getClient(clientSetup, torSetup)
-  
+  client := createHTTPClient(clientSetup, torSetup) 
   if torSetup != nil {
     tor.CheckTor(torSetup)
   }
-   
-  results := make([]string, 0, len(wordlist)) 
+  
+  hiddenCodes, err := filter.ParseHideCodes(httpCode)
+  if err != nil {
+    fmt.Errorf("Error parsing http code: %v", err)
+  }
 
-  const constUrl = "%s/%s"
+  results := make([]string, 0, len(wordlist))  
 
   for _, word:= range wordlist {
-    var url string = fmt.Sprintf(constUrl, target, word) 
+    var url string = fmt.Sprintf("%s/%s", target, word) 
     req, err := http.NewRequest("GET", url,nil)
     if err != nil {
       fmt.Println("Error creating request: ", err )
-     return
+      return
      }
     
-    //req.Header.Set("Content-Type", "application/json")
-
-    // Use hte HTTP client  to send the request 
     resp, err := client.Do(req)
     if err != nil {
-     fmt.Println("Error sending request: ", err)
+      fmt.Println("Error sending request: ", err)
       return
     }
-    
-    hiddenCodes, err := filter.ParseHideCodes(httpCode)
-    if err != nil {
-      fmt.Errorf("Error parsing http code: %v", err)
-    }
+     
     if hiddenCodes[resp.StatusCode] {
       continue
     }
-
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-      fmt.Println("[X]Error reading response: ", err)
-      return
-    }
-    CFDetected, err := ExtractCloudflareHtml(body)
-    if err != nil {
-      fmt.Println("Error extracting cloudflare page: ", err)
-    }
-    if CFDetected == true {
-      continue
-    }
-    result := fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode)
-    fmt.Println(result)
-    results = append(results, result)
     
-   resp.Body.Close()
-
+    result, err := processResponse(resp, url)
+    if err == nil {
+      fmt.Println(result)
+      results = append(results, result)
+    } 
+ 
     // print blank line
     fmt.Println("") 
   } 
 
   if outputFile != "" {
-    err := output.SaveToFile(outputFile, results)
-      if err != nil {
-        fmt.Println("Error saving output: ", err)
-      }
+    if err := output.SaveToFile(outputFile, results); err != nil {
+      fmt.Printf("Error saving output: %v\n", err)
     }
+  }
 }
