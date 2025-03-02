@@ -47,7 +47,36 @@ func bufferedWriteResults(outputFile string, resultsChan <-chan string, wg *sync
  }
 }
 
-func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string) { 
+func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hiddenCodes map[int]bool, resultsChan chan<- string, wg *sync.WaitGroup) {
+  defer wg.Done()
+  for word:= range wordlist {
+    var url string = fmt.Sprintf("%s/%s", target, word) 
+    req, err := http.NewRequest("GET", url,nil)
+    if err != nil {
+      fmt.Println("Error creating request: ", err )
+      return
+     }
+
+    resp, err := client.Do(req)
+    if err != nil {
+      fmt.Println("Error sending request: ", err)
+      return
+    }
+
+    if hiddenCodes[resp.StatusCode] {
+      resp.Body.Close()
+      continue
+    }
+
+    result, err := processResponse(resp, url)
+    if err == nil {
+      fmt.Println(result)
+      resultsChan <- result
+    }  
+  }
+}
+
+func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string, workers int) { 
   client := createHTTPClient(clientSetup, torSetup) 
   if torSetup != nil {
     tor.CheckTor(torSetup)
@@ -59,6 +88,7 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
   }
  
   resultsChan := make(chan string, 100)
+  wordlistChan := make(chan string, 100)
   var wg sync.WaitGroup
 
   if outputFile != "" {
@@ -66,39 +96,22 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
     go bufferedWriteResults(outputFile, resultsChan, &wg)
   }
 
-  for _, word:= range wordlist {
-    var url string = fmt.Sprintf("%s/%s", target, word) 
-    req, err := http.NewRequest("GET", url,nil)
-    if err != nil {
-      fmt.Println("Error creating request: ", err )
-      return
-     }
-    
-    resp, err := client.Do(req)
-    if err != nil {
-      fmt.Println("Error sending request: ", err)
-      return
-    }
-     
-    if hiddenCodes[resp.StatusCode] {
-      resp.Body.Close()
-      continue
-    }
-    
-    result, err := processResponse(resp, url)
-    if err == nil {
-      fmt.Println(result)
-      if outputFile != "" {
-        resultsChan <- result
-      }
-    } 
+  numWorkers := 10
+  if workers <= 0 {
+    numWorkers = workers
+  }
+  for i:= 0; i < numWorkers; i++ {
+    wg.Add(1)
+    go fuzzWorker(target, wordlistChan, client, hiddenCodes, resultsChan,  &wg)
+  }
+  for _, word := range wordlist {
+    wordlistChan <- word 
+  }
+  close(wordlistChan)  
  
-    // print blank line
-    fmt.Println("") 
-  } 
+  wg.Wait()
 
   if outputFile != "" {
-    close(resultsChan)
-    wg.Wait() 
+    close(resultsChan) 
   }
-}
+} 
