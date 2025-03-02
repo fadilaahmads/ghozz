@@ -8,6 +8,7 @@ import (
   "ghozz/pkg/output"
   "ghozz/pkg/filter"
   "time"
+  "sync"
 )
 
 func createHTTPClient(client *http.Client, torClient *http.Transport) *http.Client {
@@ -35,6 +36,17 @@ func processResponse(resp *http.Response, url string) (string, error) {
   return fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode), nil
 }
 
+func bufferedWriteResults(outputFile string, resultsChan <-chan string, wg *sync.WaitGroup)  {
+ defer wg.Done()
+ var results []string
+ for result := range resultsChan {
+   results = append(results, result)
+ }
+ if err := output.SaveToFile(outputFile, results); err != nil {
+   fmt.Printf("Error saving output: %v\n", err)
+ }
+}
+
 func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string) { 
   client := createHTTPClient(clientSetup, torSetup) 
   if torSetup != nil {
@@ -45,8 +57,14 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
   if err != nil {
     fmt.Errorf("Error parsing http code: %v", err)
   }
+ 
+  resultsChan := make(chan string, 100)
+  var wg sync.WaitGroup
 
-  results := make([]string, 0, len(wordlist))  
+  if outputFile != "" {
+    wg.Add(1)
+    go bufferedWriteResults(outputFile, resultsChan, &wg)
+  }
 
   for _, word:= range wordlist {
     var url string = fmt.Sprintf("%s/%s", target, word) 
@@ -63,13 +81,16 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
     }
      
     if hiddenCodes[resp.StatusCode] {
+      resp.Body.Close()
       continue
     }
     
     result, err := processResponse(resp, url)
     if err == nil {
       fmt.Println(result)
-      results = append(results, result)
+      if outputFile != "" {
+        resultsChan <- result
+      }
     } 
  
     // print blank line
@@ -77,8 +98,7 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
   } 
 
   if outputFile != "" {
-    if err := output.SaveToFile(outputFile, results); err != nil {
-      fmt.Printf("Error saving output: %v\n", err)
-    }
+    close(resultsChan)
+    wg.Wait() 
   }
 }
