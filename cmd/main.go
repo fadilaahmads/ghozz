@@ -23,18 +23,19 @@ func main()  {
       &cli.StringFlag{Name: "wordlist", Required: true},
       &cli.StringFlag{Name: "output", Required: false, Usage: "File to save output"},
       &cli.StringFlag{Name: "hide code", Required: false, Usage: "Filter output http code"},
+      &cli.StringFlag{Name: "workers", Required: false, Usage: "Define goroutine workers amount (default: 10)"},
     },
     Action: func(c *cli.Context) error {
       target:= c.String("target")
       wordlistFile := c.String("wordlist")
       outputFile:= c.String("output")
       hideCode:= c.String("hide-code")
-
+      workers:= c.Int("workers")
       wordlist, err := fuzzer.ReadWordlist(wordlistFile)
       if err != nil {
         return err
       }
-      fuzzer.Fuzz(target, wordlist, hideCode, nil,  tor, outputFile)
+      fuzzer.Fuzz(target, wordlist, hideCode, nil,  tor, outputFile, workers)
       return nil
     },
   }
