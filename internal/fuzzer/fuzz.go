@@ -21,7 +21,9 @@ func createHTTPClient(client *http.Client, torClient *http.Transport) *http.Clie
   }
 }
 
-func processResponse(resp *http.Response, url string) (string, error) { 
+func processResponse(resp *http.Response, url string) (string, error) {
+	defer resp.Body.Close()
+
   body, err := io.ReadAll(resp.Body)
   if err != nil {
     return "", fmt.Errorf("error reading response: %w", err)
@@ -30,8 +32,7 @@ func processResponse(resp *http.Response, url string) (string, error) {
   cfDetected, _ := ExtractCloudflareHtml(body)
   if cfDetected {
     return "[!] Cloudflare detected, skipping", nil
-  }
-  resp.Body.Close() 
+  } 
 
   return fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode), nil
 }
