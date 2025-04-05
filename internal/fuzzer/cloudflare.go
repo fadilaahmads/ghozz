@@ -7,22 +7,17 @@ import (
   "github.com/PuerkitoBio/goquery"
 )
 
-func ExtractCloudflareHtml(body []byte) (bool, error) {
-  var detected bool
+func ExtractCloudflareHtml(body []byte) (bool, error) { 
   // detect if the response is actually cloudflare page
   doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
   if err != nil {
-    fmt.Errorf("Error parsing HTML: %v", err)
-    return false, err
+    return false, fmt.Errorf("Error parsing HTML: %v", err) 
   }
 
   title := doc.Find("title").Text() 
   if(title == "Attention Required! | Cloudflare"){
-    detected = true
-    fmt.Println("[!] Cloudflare Detected!")
-    fmt.Println("[X] Unable to proceed!")
-  } else {
-    detected = false
+		return true, nil
   }
-  return detected, nil
+
+  return false, nil
  }
