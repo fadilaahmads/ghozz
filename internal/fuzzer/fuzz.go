@@ -89,29 +89,31 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
  
   resultsChan := make(chan string, 100)
   wordlistChan := make(chan string, 100)
-  var wg sync.WaitGroup
+  var workerWG sync.WaitGroup
+	var resultWG sync.WaitGroup
 
   if outputFile != "" {
-    wg.Add(1)
-    go bufferedWriteResults(outputFile, resultsChan, &wg)
+    resultWG.Add(1)
+    go bufferedWriteResults(outputFile, resultsChan, &resultWG)
   }
 
   numWorkers := 10
   if workers <= 0 {
-    numWorkers = workers
+    workers = 10
   }
   for i:= 0; i < numWorkers; i++ {
-    wg.Add(1)
-    go fuzzWorker(target, wordlistChan, client, hiddenCodes, resultsChan,  &wg)
+  	workerWG.Add(1)
+    go fuzzWorker(target, wordlistChan, client, hiddenCodes, resultsChan,  &workerWG)
   }
   for _, word := range wordlist {
     wordlistChan <- word 
   }
   close(wordlistChan)  
  
-  wg.Wait()
-
+	workerWG.Wait()
+	close(resultsChan)
+	 
   if outputFile != "" {
-    close(resultsChan) 
+   resultWG.Wait()  
   }
 } 
