@@ -37,14 +37,14 @@ func processResponse(resp *http.Response, url string) (string, error) {
 }
 
 func bufferedWriteResults(outputFile string, resultsChan <-chan string, wg *sync.WaitGroup)  {
- defer wg.Done()
- var results []string
- for result := range resultsChan {
-   results = append(results, result)
- }
- if err := output.SaveToFile(outputFile, results); err != nil {
-   fmt.Printf("Error saving output: %v\n", err)
- }
+	defer wg.Done()
+ 	var results []string
+ 	for result := range resultsChan {
+ 	  results = append(results, result)
+ 	}
+ 	if err := output.SaveToFile(outputFile, results); err != nil {
+ 	  fmt.Printf("Error saving output: %v\n", err)
+ 	}
 }
 
 func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hiddenCodes map[int]bool, resultsChan chan<- string, wg *sync.WaitGroup) {
