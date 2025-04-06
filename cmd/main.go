@@ -7,6 +7,7 @@ import (
   "github.com/urfave/cli/v2"
   "ghozz/internal/fuzzer"
 	"ghozz/internal/tor"
+	"ghozz/models"
 )
 
 func main()  {
@@ -14,7 +15,9 @@ func main()  {
   if err != nil {
     fmt.Errorf("Error setting up TOR proxy: %v", err)
   }
-   
+  
+	var userInput models.CliArgs
+
   app := &cli.App{
     Name: "GhoZZ",
     Usage: "Directory Fuzzing With TOR Support",
@@ -35,7 +38,14 @@ func main()  {
       if err != nil {
         return err
       }
-      fuzzer.Fuzz(target, wordlist, hideCode, nil,  tor, outputFile, workers)
+			userInput.Target = target
+			userInput.Wordlist = wordlist
+			userInput.OutputFile = outputFile
+			userInput.TorSetup = tor
+			userInput.ClientSetup = nil
+			userInput.HideCode = hideCode
+			userInput.Workers = workers
+			fuzzer.Fuzz(userInput) 
       return nil
     },
   }

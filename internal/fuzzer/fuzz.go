@@ -7,6 +7,7 @@ import (
   "ghozz/internal/tor"
   "ghozz/pkg/output"
   "ghozz/pkg/filter"
+	"ghozz/models"
   "time"
   "sync"
 )
@@ -81,7 +82,16 @@ func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hidd
   }
 }
 
-func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string, workers int) { 
+// func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string, workers int) 
+func Fuzz(userInput models.CliArgs){ 
+	target := userInput.Target
+	wordlist := userInput.Wordlist
+	httpCode := userInput.HideCode
+	clientSetup := userInput.ClientSetup
+	torSetup := userInput.TorSetup
+	outputFile := userInput.OutputFile
+	workers := userInput.Workers
+
   client := createHTTPClient(clientSetup, torSetup) 
   if torSetup != nil {
     tor.CheckTor(torSetup)
