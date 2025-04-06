@@ -29,10 +29,13 @@ func processResponse(resp *http.Response, url string) (string, error) {
     return "", fmt.Errorf("error reading response: %w", err)
   }
 
-  cfDetected, _ := ExtractCloudflareHtml(body)
-  if cfDetected {
-    return "[!] Cloudflare detected, skipping", nil
-  } 
+  cfDetected, err := ExtractCloudflareHtml(body)
+  if err != nil {
+		return "", fmt.Errorf("error checking cloudflare: %w", err)
+  }
+	if cfDetected {
+		return fmt.Sprintf("[!] Cloudflare detected on %s, skipping...", url), nil
+	}
 
   return fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode), nil
 }
@@ -49,6 +52,7 @@ func bufferedWriteResults(outputFile string, resultsChan <-chan string, wg *sync
 }
 
 func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hiddenCodes map[int]bool, resultsChan chan<- string, wg *sync.WaitGroup) {
+
   defer wg.Done()
   for word:= range wordlist {
     var url string = fmt.Sprintf("%s/%s", target, word) 
@@ -98,9 +102,10 @@ func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.C
     go bufferedWriteResults(outputFile, resultsChan, &resultWG)
   }
 
-  numWorkers := 10
+  numWorkers := workers
   if workers <= 0 {
-    workers = 10
+    numWorkers = 10
+		fmt.Println("[!] Workers must more than 0. Set 10 as default workers...")
   }
   for i:= 0; i < numWorkers; i++ {
   	workerWG.Add(1)
