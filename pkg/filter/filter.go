@@ -5,6 +5,14 @@ import (
   "strings"
 )
 
+func NormalizeURL(url string) string {
+	return strings.TrimRight(url, "/")
+}
+
+func NormalizeWord(word string) string {
+	return strings.TrimLeft(word, "/")
+}
+
 func ParseHideCodes(flag string) (map[int]bool, error) {
   hiddenCodes := make(map[int]bool)
   invalidCodes := []string{}

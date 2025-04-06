@@ -53,10 +53,10 @@ func bufferedWriteResults(outputFile string, resultsChan <-chan string, wg *sync
 }
 
 func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hiddenCodes map[int]bool, resultsChan chan<- string, wg *sync.WaitGroup) {
+ 	defer wg.Done()
 
-  defer wg.Done()
   for word:= range wordlist {
-    var url string = fmt.Sprintf("%s/%s", target, word) 
+    var url string = fmt.Sprintf("%s/%s", filter.NormalizeURL(target), filter.NormalizeWord(word))
     req, err := http.NewRequest("GET", url,nil)
     if err != nil {
       fmt.Println("Error creating request: ", err )
