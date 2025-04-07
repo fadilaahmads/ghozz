@@ -22,51 +22,56 @@ func createHTTPClient(client *http.Client, torClient *http.Transport) *http.Clie
   }
 }
 
-func processResponse(resp *http.Response, url string) (string, error) {
+func processResponse(resp *http.Response, url string) (models.Result, error) {
 	defer resp.Body.Close()
-
+	var resultData models.Result
+	
   body, err := io.ReadAll(resp.Body)
   if err != nil {
-    return "", fmt.Errorf("error reading response: %w", err)
+    return resultData, fmt.Errorf("error reading response: %w", err)
   }
 
-  cfDetected, err := ExtractCloudflareHtml(body)
+	resultData.URL = url 
+	resultData.HttpStatusCode = resp.StatusCode
+  
+	cfDetected, err := ExtractCloudflareHtml(body)
   if err != nil {
-		return "", fmt.Errorf("error checking cloudflare: %w", err)
+		return resultData, fmt.Errorf("error checking cloudflare: %w", err)
   }
 	if cfDetected {
-		return fmt.Sprintf("[!] Cloudflare detected on %s, skipping...", url), nil
+		resultData.CFDetected = true
+	} else {
+		resultData.CFDetected = false
 	}
-
-  return fmt.Sprintf("[*] URL: %s | Status: %d", url, resp.StatusCode), nil
+	
+  return resultData, nil
 }
 
-func bufferedWriteResults(outputFile string, resultsChan <-chan string, wg *sync.WaitGroup)  {
+func bufferedWriteResults(outputFile string, resultsChan <-chan models.Result, wg *sync.WaitGroup)  {
 	defer wg.Done()
  	var results []string
- 	for result := range resultsChan {
- 	  results = append(results, result)
+	
+ 	for result := range resultsChan	 {
+ 	  results = append(results, result.String())
  	}
  	if err := output.SaveToFile(outputFile, results); err != nil {
  	  fmt.Printf("Error saving output: %v\n", err)
  	}
 }
 
-func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hiddenCodes map[int]bool, resultsChan chan<- string, wg *sync.WaitGroup) {
+func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hiddenCodes map[int]bool, resultsChan chan<- models.Result, wg *sync.WaitGroup) error {
  	defer wg.Done()
 
   for word:= range wordlist {
     var url string = fmt.Sprintf("%s/%s", filter.NormalizeURL(target), filter.NormalizeWord(word))
     req, err := http.NewRequest("GET", url,nil)
     if err != nil {
-      fmt.Println("Error creating request: ", err )
-      return
+      return fmt.Errorf("Error creating request: %v", err ) 
      }
 
     resp, err := client.Do(req)
     if err != nil {
-      fmt.Println("Error sending request: ", err)
-      return
+      return fmt.Errorf("Error sending request: %v", err)
     }
 
     if hiddenCodes[resp.StatusCode] {
@@ -74,12 +79,14 @@ func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hidd
       continue
     }
 
-    result, err := processResponse(resp, url)
+    result, err := processResponse(resp, word)
     if err == nil {
       fmt.Println(result)
       resultsChan <- result
     }  
   }
+
+	return nil
 }
 
 // func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string, workers int) 
@@ -102,7 +109,7 @@ func Fuzz(userInput models.CliArgs){
     fmt.Errorf("Error parsing http code: %v", err)
   }
  
-  resultsChan := make(chan string, 100)
+  resultsChan := make(chan models.Result, 100)
   wordlistChan := make(chan string, 100)
   var workerWG sync.WaitGroup
 	var resultWG sync.WaitGroup
