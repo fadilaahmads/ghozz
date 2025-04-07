@@ -42,33 +42,6 @@ Exclude results with specific HTTP status codes:
 ./ghozz --target http://example.com --wordlist wordlist.txt --hide-code 403,404 --output results.txt
 ```
 This example runs a fuzz through the TOR network, excludes 403 and 404 responses, and saves results to `results.txt`.
-## Running Tests
-
-GhoZZ includes unit tests to ensure core functionalities work as expected. Use the following commands to run tests:
-
-### Run All Tests
-```bash
-go test ./...
-```
-- Runs all tests in the project recursively.
-
-### Run Specific Tests
-To test a specific package, such as `fuzzer`:
-```bash
-go test ./internal/fuzzer
-```
-
-### Run Tests with Detailed Output
-```bash
-go test -v ./...
-```
-- `-v`: Verbose mode, displays detailed test results.
-
-### Run Tests with Coverage Report
-```bash
-go test -cover ./...
-```
-- `-cover`: Shows test coverage percentage.
 
 ## Disclaimer
 
