@@ -9,7 +9,7 @@ A key feature of GhoZZ is its support for the TOR network, enabling anonymous sc
 
 ## Usage
 
-To run ghozz, ensure you have Go installed and the TOR service running if you plan to use the TOR feature.
+**GhoZZ** is using TOR network by default. To run ghozz, ensure you have Go installed and the TOR service running.
 
 ### Basic Example
 ```bash
@@ -17,11 +17,6 @@ To run ghozz, ensure you have Go installed and the TOR service running if you pl
 ```
 - `--target`: URL to fuzz
 - `--wordlist`: Path to the wordlist file
-
-### Using TOR for Anonymous Scanning
-```bash
-./ghozz --target http://example.com --wordlist wordlist.txt
-```
 - Requires the TOR service running on `localhost:9050`
 
 ### Hiding Specific HTTP Status Codes
