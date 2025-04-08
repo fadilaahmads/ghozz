@@ -17,11 +17,3 @@ func (r Result) String() string {
 		return fmt.Sprintf("[*] URL: %s | Code: %d", r.URL, r.HttpStatusCode)
 	}
 }
-
-func (r models.Result) ShowResult() string {
-	fm.Println("[>] URL: %s", r.URL)
-	fmt.Println("[>] Code: %d", r.HttpStatusCode)
-	if r.CFDetected {
-		fmt.Println("[!] Cloudflare detected! skipping...")
-	}
-}
