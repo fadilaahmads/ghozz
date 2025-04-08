@@ -88,8 +88,7 @@ func fuzzWorker(target string, wordlist <-chan string, client *http.Client, hidd
 
 	return nil
 }
-
-// func Fuzz(target string, wordlist []string, httpCode string, clientSetup *http.Client, torSetup *http.Transport, outputFile string, workers int) 
+ 
 func Fuzz(userInput models.CliArgs){ 
 	target := userInput.Target
 	wordlist := userInput.Wordlist
